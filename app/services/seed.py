@@ -72,9 +72,9 @@ FORMULAS = [
 # value, drift, vol, seed, source_id, data_status, quality, formula_id
 INSTRUMENTS = [
     ("brent_futures", "Brent Crude Futures", "Brent", "BRN", "Crude oil", "USD/bbl", "futures", 2, "internal",
-     78.42, 0.02, 1.8, 3, "SRC-ICE", "real-time", "valid", None),
+     92.45, 0.02, 1.8, 3, "SRC-ICE", "real-time", "valid", None),
     ("wti_futures", "WTI Crude Futures", "WTI", "CL", "Crude oil", "USD/bbl", "futures", 2, "internal",
-     74.18, 0.015, 1.4, 7, "SRC-CME", "real-time", "valid", None),
+     84.60, 0.015, 1.4, 7, "SRC-CME", "real-time", "valid", None),
     ("brent_physical", "Brent Physical Dated", "Brent Dated", "BRD", "Crude oil", "USD/bbl", "physical", 2, "restricted",
      77.9, 0.018, 1.6, 11, "SRC-PLATTS", "eod", "valid", None),
     ("ron95", "Gasoline RON95 (FOB Singapore)", "RON95", "RON95", "Refined products", "USD/bbl", "physical", 2, "internal",
@@ -86,9 +86,9 @@ INSTRUMENTS = [
     ("fuel_oil", "Fuel Oil 180 CST (FOB Singapore)", "Fuel oil", "FO180", "Refined products", "USD/bbl", "physical", 2, "internal",
      68.3, -0.005, 1.2, 27, "SRC-PLATTS", "eod", "pending", None),
     ("usd_vnd", "USD/VND", "USD/VND", "USDVND", "FX & macro", "VND", "index", 0, "internal",
-     25480, 0.004, 90, 31, "SRC-SBV", "delayed", "valid", None),
+     25652, 0.004, 90, 31, "SRC-SBV", "delayed", "valid", None),
     ("dxy", "US Dollar Index", "DXY", "DXY", "FX & macro", "index", "index", 2, "internal",
-     104.12, -0.002, 0.55, 35, "SRC-ICE", "delayed", "valid", None),
+     103.65, -0.002, 0.55, 35, "SRC-ICE", "delayed", "valid", None),
     ("crack_gasoline", "Gasoline Crack Spread", "Gasoline crack", "CS-GAS", "Crack spreads", "USD/bbl", "calculated", 2, "internal",
      18.35, 0.03, 1.0, 39, "SRC-BSR-AN", "eod", "valid", "CS-GAS-2.1"),
     ("crack_diesel", "Diesel Crack Spread", "Diesel crack", "CS-DSL", "Crack spreads", "USD/bbl", "calculated", 2, "internal",
@@ -115,7 +115,7 @@ TOPICS = {
 NEWS = [
     {
         "id": "N-2411",
-        "title": "OPEC+ signals patience on output as Brent tests $78",
+        "title": "OPEC+ signals patience on output as Brent tests $92",
         "source_id": "SRC-REUTERS",
         "published_at": "2026-11-14T07:50:00+07:00",
         "ingested_at": "2026-11-14T08:02:00+07:00",
@@ -255,11 +255,11 @@ DRIVERS = [
 ]
 
 FORECASTS = [
-    ("F-101", "EIA (demo)", "SRC-EIA", "brent_futures", 79.5, "Q1 2027", "3-month", "STEO baseline", 3, "internal", 78.42, 80.2, "2026-11-12"),
+    ("F-101", "EIA (demo)", "SRC-EIA", "brent_futures", 79.5, "Q1 2027", "3-month", "STEO baseline", 3, "internal", 92.45, 80.2, "2026-11-12"),
     ("F-102", "IEA (demo)", "SRC-IEA", "brent_futures", 77.8, "Q1 2027", "3-month", "Balances + inventory model", 2, "internal", None, 78.4, "2026-11-10"),
     ("F-103", "Platts (demo)", "SRC-PLATTS", "ron95", 93.4, "Dec 2026", "1-month", "Analytics spot outlook", 4, "internal", 92.1, 92.9, "2026-11-13"),
     ("F-104", "BSR Internal", "SRC-BSR-IN", "crack_gasoline", 17.9, "Dec 2026", "1-month", "Demo internal scenario", 1, "confidential", 18.35, None, "2026-11-11"),
-    ("F-105", "IEA (demo)", "SRC-IEA", "wti_futures", 72.6, "Q1 2027", "3-month", "Balances + inventory model", 2, "internal", 74.18, 73.9, "2026-11-10"),
+    ("F-105", "IEA (demo)", "SRC-IEA", "wti_futures", 72.6, "Q1 2027", "3-month", "Balances + inventory model", 2, "internal", 84.60, 73.9, "2026-11-10"),
     ("F-106", "EIA (demo)", "SRC-EIA", "wti_futures", 74.1, "Q1 2027", "3-month", "STEO baseline", 3, "internal", None, 75.0, "2026-11-12"),
 ]
 

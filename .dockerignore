@@ -8,7 +8,6 @@ __pycache__/
 .rai/
 tmp/
 instance/
-docs/
 tests/
 requirements-dev.txt
 Dockerfile

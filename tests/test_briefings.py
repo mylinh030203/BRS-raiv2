@@ -84,7 +84,7 @@ def test_analysis_is_computed_with_an_evidence_ledger(seeded_client):
     assert body["facts"]
     assert body["evidence"]
     crack = next(item for item in body["calculations"] if item["label"].startswith("Gasoline crack"))
-    assert crack["value"] == 13.68
+    assert crack["value"] == -0.35
     assert body["assumptions"]
     assert body["recommendation"]["title"]
     assert body["execution"]["task_id"].startswith("AI-")

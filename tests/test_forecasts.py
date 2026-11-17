@@ -33,8 +33,8 @@ def test_version_history_is_newest_first(seeded_client):
     assert [row["version"] for row in versions] == [3, 2, 1]
     assert versions[0]["value"] == 79.5
     assert versions[1]["value"] == 80.2
-    assert versions[0]["actual"] == 78.42
-    assert versions[0]["absolute_error"] == 1.08
+    assert versions[0]["actual"] == 92.45
+    assert versions[0]["absolute_error"] == 12.95
 
 
 def test_new_version_never_overwrites_history(seeded_client, seeded_app):
@@ -81,8 +81,8 @@ def test_evaluation_reports_errors_and_missing_actuals(seeded_client):
     login_as(seeded_client, "leadership")
     body = seeded_client.get("/api/forecasts/evaluation").get_json()
     items = {item["id"]: item for item in body["items"]}
-    assert items["F-101"]["absolute_error"] == 1.08
-    assert items["F-101"]["percentage_error"] == round(1.08 / 78.42 * 100, 6)
+    assert items["F-101"]["absolute_error"] == 12.95
+    assert items["F-101"]["percentage_error"] == round(12.95 / 92.45 * 100, 6)
     assert items["F-102"]["note"] == "actual missing"
     assert items["F-102"]["absolute_error"] is None
     assert body["aggregates"]
@@ -91,7 +91,7 @@ def test_evaluation_reports_errors_and_missing_actuals(seeded_client):
     )
     assert eia["count"] == 1
     assert eia["missing"] == 1
-    assert eia["mae"] == 1.08
+    assert eia["mae"] == 12.95
 
 
 def test_new_version_is_limited_to_mi(seeded_client):

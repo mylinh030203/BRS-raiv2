@@ -38,8 +38,27 @@ def _env_flag(name: str, default: bool) -> bool:
     return raw.strip().lower() in ("1", "true", "yes", "on")
 
 
+def _load_dotenv(path: Path) -> None:
+    """Populate os.environ from a local .env file if present."""
+    if not path.is_file():
+        return
+    try:
+        content = path.read_text(encoding="utf-8")
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip().strip("'\"")
+            os.environ.setdefault(key, val)
+    except Exception:
+        pass
+
+
 def load_config() -> dict:
     """Return the default configuration for the application factory."""
+    _load_dotenv(PROJECT_ROOT / ".env")
     environment = os.environ.get("BSR_ENV", "development").strip().lower()
     production = environment == "production"
     # Demo data is useful on a workstation and dangerous on a shared host, so a
@@ -67,6 +86,9 @@ def load_config() -> dict:
         "SEED_ON_START": _env_flag("BSR_SEED_ON_START", seed_default),
         "RATE_LIMITS": _rate_limits(),
         "JSON_SORT_KEYS": False,
+        "DEEPSEEK_API_KEY": os.environ.get("DEEPSEEK_API_KEY", "").strip(),
+        "DEEPSEEK_MODEL": os.environ.get("DEEPSEEK_MODEL", "deepseek-chat").strip(),
+        "DEEPSEEK_BASE_URL": os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com").strip(),
     }
 
 

@@ -51,6 +51,13 @@ def create_app(test_config: dict | None = None) -> Flask:
     def index():
         return send_from_directory(app.static_folder, "index.html")
 
+    @app.get("/prototype")
+    @app.get("/prototype/")
+    @app.get("/prototype/<path:filename>")
+    def prototype(filename="index.html"):
+        prototype_dir = Path(__file__).resolve().parent.parent / "docs" / "design" / "prototype"
+        return send_from_directory(prototype_dir, filename)
+
     @app.after_request
     def security_headers(response):
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -58,8 +65,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         response.headers.setdefault("Referrer-Policy", "same-origin")
         response.headers.setdefault(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-            "script-src 'self'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'",
+            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "script-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'",
         )
         return response
 

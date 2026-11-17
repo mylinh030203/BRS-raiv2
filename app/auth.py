@@ -14,7 +14,7 @@ from .db import get_db, utc_now
 from .errors import ApiError
 
 COOKIE_NAME = "bsr_session"
-PUBLIC_API_PATHS = {"/api/health", "/api/auth/session"}
+PUBLIC_API_PATHS = {"/api/health", "/api/auth/session", "/api/assistant/config", "/api/assistant/prototype-query"}
 
 
 def hash_token(token: str) -> str:

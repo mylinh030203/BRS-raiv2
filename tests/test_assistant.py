@@ -65,7 +65,7 @@ def test_calculation_questions_use_deterministic_analytics(seeded_client):
     crack = next(
         item for item in body["calculations"] if item["label"].startswith("Gasoline crack")
     )
-    assert crack["value"] == 13.68
+    assert crack["value"] == -0.35
     assert "CS-GAS-2.1" in crack["method"]
     assert "Deterministic calculations" in body["answer"]
 

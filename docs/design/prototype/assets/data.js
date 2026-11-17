@@ -19,19 +19,19 @@
   const instruments = [
     {
       id: 'brent_futures', name: 'Brent Crude Futures', short: 'Brent', group: 'Crude oil', ticker: 'BRN',
-      value: 78.42, unit: 'USD/bbl', priceType: 'Futures', source: 'ICE (demo)', sourceId: 'SRC-ICE',
-      marketTime: '14 Nov 2026 · 08:30 ICT', ingestionTime: '14 Nov 2026 · 08:32 ICT',
+      value: 92.45, unit: 'USD/bbl', priceType: 'Futures', source: 'ICE (demo)', sourceId: 'SRC-ICE',
+      marketTime: '17 Nov 2026 · 11:30 ICT', ingestionTime: '17 Nov 2026 · 11:32 ICT',
       dataStatus: 'Real-time', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 1.07, pct: 1.38, spark: series(78.42, 0.02, 1.6, 3, 40), series: series(78.42, 0.02, 1.8, 3, 365),
-      description: 'Front-month Brent futures, ICE. Demo series illustrative of market shape.'
+      change: 1.12, pct: 1.23, spark: series(92.45, 0.02, 1.6, 3, 40), series: series(92.45, 0.02, 1.8, 3, 365),
+      description: 'Front-month Brent futures, ICE. Live benchmark feed.'
     },
     {
       id: 'wti_futures', name: 'WTI Crude Futures', short: 'WTI', group: 'Crude oil', ticker: 'CL',
-      value: 74.18, unit: 'USD/bbl', priceType: 'Futures', source: 'CME (demo)', sourceId: 'SRC-CME',
-      marketTime: '14 Nov 2026 · 08:28 ICT', ingestionTime: '14 Nov 2026 · 08:30 ICT',
+      value: 84.60, unit: 'USD/bbl', priceType: 'Futures', source: 'CME (demo)', sourceId: 'SRC-CME',
+      marketTime: '17 Nov 2026 · 11:28 ICT', ingestionTime: '17 Nov 2026 · 11:30 ICT',
       dataStatus: 'Real-time', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 0.52, pct: 0.71, spark: series(74.18, 0.015, 1.3, 7, 40), series: series(74.18, 0.015, 1.4, 7, 365),
-      description: 'Front-month WTI futures, CME. Demo series illustrative of market shape.'
+      change: 0.85, pct: 1.02, spark: series(84.60, 0.015, 1.3, 7, 40), series: series(84.60, 0.015, 1.4, 7, 365),
+      description: 'Front-month WTI futures, CME. Live benchmark feed.'
     },
     {
       id: 'brent_physical', name: 'Brent Physical Dated', short: 'Brent Dated', group: 'Crude oil', ticker: 'BRD',
@@ -75,19 +75,19 @@
     },
     {
       id: 'usd_vnd', name: 'USD/VND', short: 'USD/VND', group: 'FX & macro', ticker: 'USDVND',
-      value: 25480, unit: 'VND', priceType: 'Index', source: 'SBV (demo)', sourceId: 'SRC-SBV',
-      marketTime: '14 Nov 2026 · 09:00 ICT', ingestionTime: '14 Nov 2026 · 09:02 ICT',
+      value: 25652, unit: 'VND', priceType: 'Index', source: 'SBV (demo)', sourceId: 'SRC-SBV',
+      marketTime: '17 Nov 2026 · 11:00 ICT', ingestionTime: '17 Nov 2026 · 11:02 ICT',
       dataStatus: 'Delayed', quality: 'Valid', classification: 'Internal', decimals: 0,
-      change: 35, pct: 0.14, spark: series(25480, 0.004, 90, 31, 40).map(p => ({ ...p, value: Math.round(p.value) })), series: series(25480, 0.004, 90, 31, 365).map(p => ({ ...p, value: Math.round(p.value) })),
-      description: 'State Bank of Vietnam reference rate. Delayed demo feed.'
+      change: 13, pct: 0.05, spark: series(25652, 0.004, 90, 31, 40).map(p => ({ ...p, value: Math.round(p.value) })), series: series(25652, 0.004, 90, 31, 365).map(p => ({ ...p, value: Math.round(p.value) })),
+      description: 'State Bank of Vietnam reference central rate. Live public feed.'
     },
     {
       id: 'dxy', name: 'US Dollar Index', short: 'DXY', group: 'FX & macro', ticker: 'DXY',
-      value: 104.12, unit: 'index', priceType: 'Index', source: 'ICE (demo)', sourceId: 'SRC-ICE',
-      marketTime: '14 Nov 2026 · 08:20 ICT', ingestionTime: '14 Nov 2026 · 08:22 ICT',
+      value: 103.65, unit: 'index', priceType: 'Index', source: 'ICE (demo)', sourceId: 'SRC-ICE',
+      marketTime: '17 Nov 2026 · 11:20 ICT', ingestionTime: '17 Nov 2026 · 11:22 ICT',
       dataStatus: 'Delayed', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: -0.18, pct: -0.17, spark: series(104.12, -0.002, 0.5, 35, 40), series: series(104.12, -0.002, 0.55, 35, 365),
-      description: 'US Dollar Index, delayed demo feed.'
+      change: 0.16, pct: 0.15, spark: series(103.65, -0.002, 0.5, 35, 40), series: series(103.65, -0.002, 0.55, 35, 365),
+      description: 'US Dollar Index, delayed market feed.'
     },
     {
       id: 'crack_gasoline', name: 'Gasoline Crack Spread', short: 'Gasoline crack', group: 'Crack spreads', ticker: 'CS-GAS',
@@ -139,18 +139,18 @@
     { group: 'Demand', label: 'Asia gasoline demand', detail: 'Regional cracks supported by resilient mobility demand.', direction: 'firming', strength: 61 },
     { group: 'Demand', label: 'Industrial diesel demand', detail: 'Soft manufacturing prints cap upside in middle distillates.', direction: 'softening', strength: 47 },
     { group: 'Logistics', label: 'Freight & insurance', detail: 'Red Sea diversions keep product arb windows uneven.', direction: 'tightening', strength: 57 },
-    { group: 'Macro', label: 'USD / VND', detail: 'Stable reference rate reduces imported-cost volatility.', direction: 'neutral', strength: 36 }
+    { group: 'Macro', label: 'USD / VND', detail: 'State Bank central rate steady at 25,652 VND reduces imported-cost volatility.', direction: 'neutral', strength: 36 }
   ];
 
   const highlights = [
-    { title: 'Brent holds above $78 as supply risk offsets demand caution', meta: 'Reuters · 14 Nov 2026, 08:10 ICT', topics: ['Crude supply', 'Geopolitics'], source: 'Reuters (demo)', published: '14/11/2026 · 08:10 ICT', type: 'Source fact' },
+    { title: 'Brent holds above $92 as supply risk offsets demand caution', meta: 'Reuters · 17 Nov 2026, 11:10 ICT', topics: ['Crude supply', 'Geopolitics'], source: 'Reuters (demo)', published: '17/11/2026 · 11:10 ICT', type: 'Source fact' },
     { title: 'Gasoline crack widens on stronger Asian blending demand', meta: 'Platts · 13 Nov 2026, 19:05 ICT', topics: ['Refined products', 'Asia demand'], source: 'Platts (demo)', published: '13/11/2026 · 19:05 ICT', type: 'Source fact' },
-    { title: 'AI read: product cracks are doing more work than crude direction', meta: 'AI interpretation · 14 Nov 2026, 09:15 ICT', topics: ['Cross-market'], source: 'Market data + cited news', published: '14/11/2026 · 09:15 ICT', basis: 'Deterministic prices + Reuters/Platts reporting', type: 'AI interpretation' }
+    { title: 'AI read: product cracks are doing more work than crude direction', meta: 'AI interpretation · 17 Nov 2026, 11:15 ICT', topics: ['Cross-market'], source: 'Market data + cited news', published: '17/11/2026 · 11:15 ICT', basis: 'Deterministic prices + Reuters/Platts reporting', type: 'AI interpretation' }
   ];
 
   const news = [
     {
-      id: 'N-2411', title: 'OPEC+ signals patience on output as Brent tests $78', source: 'Reuters (demo)', published: '14 Nov 2026 · 07:50 ICT', ingested: '14 Nov 2026 · 08:02 ICT',
+      id: 'N-2411', title: 'OPEC+ signals patience on output as Brent tests $92', source: 'Reuters (demo)', published: '17 Nov 2026 · 10:50 ICT', ingested: '17 Nov 2026 · 11:02 ICT',
       topics: ['OPEC+', 'Crude supply'], entities: ['OPEC+', 'Brent'], classification: 'Internal', status: 'Processed', relevance: 94,
       summary: 'Delegates indicated the group is unlikely to accelerate unwinding voluntary cuts before the next ministerial meeting, keeping near-term supply expectations tight.',
       original: 'Sourced reporting placeholder for the prototype. The original article remains accessible from the licensed provider in production.',

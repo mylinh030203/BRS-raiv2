@@ -80,16 +80,16 @@ def test_seed_matches_the_prototype_key_values(seeded_app):
                 (instrument_id,),
             ).fetchone()
 
-        assert latest("brent_futures")["value"] == 78.42
-        assert latest("wti_futures")["value"] == 74.18
+        assert latest("brent_futures")["value"] == 92.45
+        assert latest("wti_futures")["value"] == 84.60
         assert latest("ron95")["value"] == 92.1
-        assert latest("crack_gasoline")["value"] == 13.68
+        assert latest("crack_gasoline")["value"] == -0.35
         assert latest("crack_gasoline")["formula_id"] == "CS-GAS-2.1"
         assert latest("crack_gasoline")["calculation_inputs"]
         assert latest("crack_diesel")["value"] == round(
             latest("diesel")["value"] - latest("brent_futures")["value"], 2
         )
-        assert latest("usd_vnd")["value"] == 25480
+        assert latest("usd_vnd")["value"] == 25652
         assert latest("brent_physical")["classification"] == "restricted"
 
 
@@ -126,8 +126,8 @@ def test_seeded_crack_values_equal_the_formula_output(seeded_app):
         user = db.execute("SELECT * FROM users WHERE role = 'mi'").fetchone()
         as_of = "2026-11-14T09:42:00+07:00"
         for formula_id, instrument_id, expected in (
-            ("CS-GAS-2.1", "crack_gasoline", 13.68),
-            ("CS-DSL-2.0", "crack_diesel", 17.98),
+            ("CS-GAS-2.1", "crack_gasoline", -0.35),
+            ("CS-DSL-2.0", "crack_diesel", 3.95),
         ):
             computed = market.compute_crack(db, user, formula_id, as_of)
             stored = db.execute(

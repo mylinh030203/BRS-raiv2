@@ -51,7 +51,7 @@ def test_morning_triage(page):
     page.get_by_label("Hỏi trợ lý").fill("What is the gasoline crack spread?")
     page.get_by_role("button", name="Gửi").click()
     expect(page.get_by_text(re.compile("AI interpretation"))).to_be_visible()
-    expect(page.get_by_text(re.compile("13.68"))).to_be_visible()
+    expect(page.get_by_text(re.compile("-0.35"))).to_be_visible()
 
 
 def test_news_review(page):

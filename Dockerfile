@@ -15,6 +15,7 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY migrations ./migrations
+COPY docs ./docs
 COPY wsgi.py run_prod.py ./
 
 # SQLite keeps its database, WAL and SHM files in one directory: mount a

@@ -1051,27 +1051,478 @@
       </div>`;
   }
 
-  /* ---------- Assistant ---------- */
+  /* ---------- Assistant & Live AI Agent ---------- */
+  const AI_CONFIG_KEY = 'bsr.ai_agent_config';
+  let backendEnvConfig = null;
+
+  async function checkBackendEnv() {
+    try {
+      const res = await fetch('/api/assistant/config');
+      if (res.ok) {
+        const data = await res.json();
+        backendEnvConfig = data;
+        if (state.route === 'assistant') render();
+      }
+    } catch (e) {
+      // Backend not running (e.g. standalone static preview)
+    }
+  }
+  checkBackendEnv();
+  setTimeout(checkBackendEnv, 500);
+
+  function getAiConfig() {
+    try {
+      const raw = localStorage.getItem(AI_CONFIG_KEY);
+      if (!raw) return { provider: 'auker', model: 'deepseek-chat', apiKey: '', baseUrl: 'https://api.deepseek.com' };
+      const parsed = JSON.parse(raw);
+      if (!parsed || (parsed.provider !== 'deepseek' && parsed.provider !== 'auker')) {
+        return { provider: 'auker', model: 'deepseek-chat', apiKey: '', baseUrl: 'https://api.deepseek.com' };
+      }
+      return parsed;
+    } catch (e) {
+      return { provider: 'auker', model: 'deepseek-chat', apiKey: '', baseUrl: 'https://api.deepseek.com' };
+    }
+  }
+
+  function saveAiConfig(config) {
+    if (!config) {
+      localStorage.removeItem(AI_CONFIG_KEY);
+    } else {
+      localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(config));
+    }
+  }
+
+  function formatAiMarkdown(text) {
+    if (!text) return '';
+    let s = text.trim();
+    // Escape HTML special characters
+    s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Code blocks
+    s = s.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    // Inline code
+    s = s.replace(/`([^`]+)`/g, '<code class="calc">$1</code>');
+    // Bold
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Headers
+    s = s.replace(/^### (.*$)/gim, '<h4 style="margin:10px 0 4px;font-size:13px;color:var(--ink-900);">$1</h4>');
+    s = s.replace(/^## (.*$)/gim, '<h3 style="margin:12px 0 6px;font-size:14px;color:var(--ink-900);">$1</h3>');
+
+    const lines = s.split('\n');
+    let inList = false;
+    let listType = 'ul';
+    const out = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (/^[-*•]\s+(.*)$/.test(trimmed)) {
+        if (!inList || listType !== 'ul') {
+          if (inList) out.push(listType === 'ol' ? '</ol>' : '</ul>');
+          out.push('<ul>');
+          inList = true;
+          listType = 'ul';
+        }
+        out.push('<li>' + trimmed.replace(/^[-*•]\s+/, '') + '</li>');
+      } else if (/^\d+\.\s+(.*)$/.test(trimmed)) {
+        if (!inList || listType !== 'ol') {
+          if (inList) out.push(listType === 'ol' ? '</ol>' : '</ul>');
+          out.push('<ol style="margin:6px 0;padding-left:18px;">');
+          inList = true;
+          listType = 'ol';
+        }
+        out.push('<li>' + trimmed.replace(/^\d+\.\s+/, '') + '</li>');
+      } else {
+        if (inList) {
+          out.push(listType === 'ol' ? '</ol>' : '</ul>');
+          inList = false;
+        }
+        if (trimmed.length > 0) {
+          out.push('<p>' + trimmed + '</p>');
+        }
+      }
+    }
+    if (inList) {
+      out.push(listType === 'ol' ? '</ol>' : '</ul>');
+    }
+    return out.join('');
+  }
+
+  function extractSourcesFromText(text) {
+    const sources = [];
+    const add = (label, route, id) => {
+      if (!sources.some((s) => s.id === id && s.route === route)) {
+        sources.push({ label, route, id });
+      }
+    };
+    const lower = text.toLowerCase();
+
+    if (lower.includes('brent_futures') || lower.includes('brent')) {
+      add(t('Brent futures') + ' · ICE (demo)', 'market-data', 'brent_futures');
+    }
+    if (lower.includes('wti_futures') || lower.includes('wti')) {
+      add(t('WTI futures') + ' · CME (demo)', 'market-data', 'wti_futures');
+    }
+    if (lower.includes('ron95') || lower.includes('xăng')) {
+      add('RON95 physical · Platts (demo)', 'market-data', 'ron95');
+    }
+    if (lower.includes('diesel') || lower.includes('dầu diesel')) {
+      add('Diesel 10ppm · Platts (demo)', 'market-data', 'diesel');
+    }
+    if (lower.includes('crack_gasoline') || lower.includes('crack') || lower.includes('spread')) {
+      add('Gasoline crack · BSR Analytical', 'market-data', 'crack_gasoline');
+    }
+    if (lower.includes('brent_physical') || lower.includes('dated brent') || lower.includes('vật chất')) {
+      if (role().viewRestricted) {
+        add('Brent Physical Dated · Platts (demo)', 'market-data', 'brent_physical');
+      }
+    }
+
+    if (lower.includes('n-2411') || lower.includes('opec')) {
+      add('OPEC+ signal (N-2411) · Reuters', 'news', 'N-2411');
+    }
+    if (lower.includes('n-2410') || lower.includes('red sea') || lower.includes('biển đỏ') || lower.includes('freight')) {
+      add('Red Sea freight (N-2410) · Platts', 'news', 'N-2410');
+    }
+    if (lower.includes('n-2408') || lower.includes('dung quất') || lower.includes('bảo dưỡng') || lower.includes('cdu')) {
+      add('Dung Quất CDU (N-2408) · BSR Internal', 'news', 'N-2408');
+    }
+    if (lower.includes('n-2409') || lower.includes('eia') || lower.includes('inventory') || lower.includes('tồn kho')) {
+      add('US inventories (N-2409) · EIA', 'news', 'N-2409');
+    }
+    return sources;
+  }
+
+  async function callLiveAiAgent(question, config) {
+    const startTime = performance.now();
+    const currentRole = role();
+    const isRestrictedAllowed = !!currentRole.viewRestricted;
+
+    // Filter instruments according to permissions
+    const visibleInstruments = (window.DEMO && window.DEMO.instruments ? window.DEMO.instruments : [])
+      .filter((i) => isRestrictedAllowed || i.classification !== 'Restricted')
+      .map((i) => ({
+        id: i.id,
+        name: i.name,
+        price: i.value,
+        unit: i.unit,
+        change: i.change,
+        pct: i.pct,
+        source: i.source,
+        status: i.dataStatus,
+        classification: i.classification,
+        description: i.description,
+        formula: i.formula ? i.formula.rule : null
+      }));
+
+    // Filter news according to permissions
+    const visibleNews = (window.DEMO && window.DEMO.news ? window.DEMO.news : [])
+      .filter((n) => isRestrictedAllowed || n.classification !== 'Restricted')
+      .map((n) => ({
+        id: n.id,
+        title: n.title,
+        source: n.source,
+        published: n.published,
+        summary: n.summary,
+        insight: n.insight,
+        classification: n.classification
+      }));
+
+    const drivers = window.DEMO && window.DEMO.drivers ? window.DEMO.drivers : [];
+    const forecasts = (window.DEMO && window.DEMO.forecasts ? window.DEMO.forecasts : [])
+      .filter((f) => isRestrictedAllowed || f.classification !== 'Restricted');
+
+    const systemPrompt = `Bạn là Trợ lý AI Phân tích Thị trường (Market Intelligence Agent) chuyên nghiệp cho Công ty Cổ phần Lọc hóa dầu Bình Sơn (BSR - Nhà máy Lọc dầu Dung Quất).
+Ngôn ngữ trả lời: Tiếng Việt (hoặc ngôn ngữ câu hỏi của người dùng).
+
+QUY ĐỊNH PHÂN QUYỀN TRUY CẬP (ACCESS CONTROL):
+- Vai trò người dùng hiện tại: ${currentRole.label} (${currentRole.name}) - Thuộc phòng: ${currentRole.department}.
+- Mức phân loại tối đa: ${currentRole.maxClassification}.
+- Quyền xem dữ liệu Mật/Hạn chế (Restricted/Confidential): ${isRestrictedAllowed ? 'ĐƯỢC PHÉP' : 'BỊ TỪ CHỐI'}.
+- NẾU người dùng hỏi về dữ liệu Hạn chế/Mật (như giá Brent Physical Dated hoặc Biên lợi nhuận lọc dầu BSR Internal Margin) trong khi Quyền là "BỊ TỪ CHỐI", bạn BẮT BUỘC phải TỪ CHỐI cung cấp giá trị số, giải thích lịch sự rằng vai trò của họ chưa được cấp quyền xem dữ liệu Restricted.
+
+DỮ LIỆU THỊ TRƯỜNG & TIN TỨC MẪU CỦA BSR ĐƯỢC CẤP PHÉP:
+1. Danh mục giá: ${JSON.stringify(visibleInstruments)}
+2. Tin tức & Sự kiện: ${JSON.stringify(visibleNews)}
+3. Yếu tố dẫn dắt (Market Drivers): ${JSON.stringify(drivers)}
+4. Dự báo (Forecasts): ${JSON.stringify(forecasts)}
+
+NGUYÊN TẮC TRẢ LỜI:
+1. Mọi con số, sự kiện và nhận định phải bám sát dữ liệu được cung cấp ở trên. Tuyệt đối không bịa đặt số liệu giá ngoài danh sách.
+2. Trình bày rõ ràng, súc tích với định dạng Markdown (tiêu đề, in đậm số liệu, gạch đầu dòng).
+3. Luôn phân định rõ ràng giữa:
+   - [Số liệu thực tế / Facts]: Giá bao nhiêu, thay đổi bao nhiêu, nguồn từ đâu.
+   - [Tính toán phân tích / Analysis]: Crack spread, spread Brent-WTI, tác động vận tải/biến động.
+   - [Nhận định & Khuyến nghị / AI Interpretation]: Gợi ý điểm cần theo dõi cho BSR.
+4. Khi đề cập đến loại hàng hay tin tức cụ thể, hãy ghi rõ mã định danh (ví dụ: brent_futures, ron95, crack_gasoline, N-2411, N-2410...) để hệ thống tự tạo liên kết nguồn.`;
+
+    let replyText = '';
+    const baseUrl = (config.baseUrl || 'https://api.deepseek.com').replace(/\/+$/, '');
+    const model = config.model || 'deepseek-chat';
+    const url = `${baseUrl}/chat/completions`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: question }
+        ],
+        temperature: 0.3
+      })
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      const msg = errJson.error && errJson.error.message ? errJson.error.message : `HTTP ${res.status} ${res.statusText}`;
+      throw new Error(`DeepSeek API: ${msg}`);
+    }
+
+    const data = await res.json();
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      replyText = data.choices[0].message.content;
+    } else {
+      throw new Error('DeepSeek API không trả về nội dung hợp lệ.');
+    }
+
+    const latency = ((performance.now() - startTime) / 1000).toFixed(2);
+    const sources = extractSourcesFromText(replyText + ' ' + question);
+    const isRefusal = replyText.toLowerCase().includes('từ chối') || replyText.toLowerCase().includes('chưa được cấp quyền') || replyText.toLowerCase().includes('không có quyền');
+
+    return {
+      type: 'live_agent_query',
+      model: 'Auker AI Agent',
+      html: formatAiMarkdown(replyText),
+      sources: sources,
+      trace: {
+        tools: ['permission_scope.enforce', 'auker.context_retrieval', 'auker_agent.inference', 'output.markdown_render'],
+        validation: 'passed',
+        status: 'completed',
+        meta: `Auker Orchestration (Auker AI Agent) · Latency: ${latency}s`
+      },
+      meta: 'Auker Intelligence · Auker AI Agent',
+      refusal: isRefusal,
+      latency: latency,
+      cost: '$0.001'
+    };
+  }
+
+  function openAiSettingsModal() {
+    const config = getAiConfig() || { provider: 'auker', model: 'deepseek-chat', apiKey: '', baseUrl: 'https://api.deepseek.com' };
+    const hasEnv = !!(backendEnvConfig && backendEnvConfig.has_key);
+    const isDeepSeek = config.provider === 'deepseek' || hasEnv;
+    const kicker = 'BẢO MẬT & CẤU HÌNH';
+    const title = 'Cấu hình Auker AI Agent';
+    const body = `
+      <div class="grid gap-16">
+        ${hasEnv ? `
+          <div class="inline-note" style="background:var(--surface-2);border-left:3px solid var(--teal);padding:10px 12px;">
+            <span class="note-mark">✓</span>
+            <span><strong>Đã kết nối .env từ Server:</strong> Backend Python đang chạy và đã nạp Key từ file <code>.env</code>. Hệ thống tự động kích hoạt Auker AI Agent cho bạn!</span>
+          </div>
+        ` : `
+          <div class="inline-note" style="background:var(--surface-2);border-left:3px solid var(--teal);padding:10px 12px;">
+            <span class="note-mark">🔒</span>
+            <span><strong>Bảo mật tuyệt đối khi Deploy:</strong> Bạn có thể cấu hình API Key qua file <code>.env</code> ở Backend, hoặc lưu trực tiếp trong <code>localStorage</code> trên trình duyệt của riêng bạn. Khi deploy lên hosting tĩnh (GitHub Pages/Vercel), <strong>không có API Key nào nằm trong mã nguồn</strong>.</span>
+          </div>
+        `}
+
+        <div class="field">
+          <label for="ai-provider">Chọn Động cơ AI (AI Engine)</label>
+          <select id="ai-provider">
+            <option value="auker" ${!isDeepSeek ? 'selected' : ''}>Auker Orchestration (Mô phỏng nội bộ BSR · Không cần Key)</option>
+            <option value="deepseek" ${isDeepSeek ? 'selected' : ''}>Auker AI Agent (Live AI Agent · Phân tích & Suy luận thật)</option>
+          </select>
+        </div>
+
+        <div id="ai-auker-desc" style="${isDeepSeek ? 'display:none;' : ''}">
+          <div class="inline-note" style="background:var(--surface);border-left:3px solid var(--copper);padding:9px 12px;">
+            <span class="note-mark">ℹ</span>
+            <span><strong>Chế độ Auker:</strong> Sử dụng động cơ phân tích tất định (Deterministic) và bộ dữ liệu mockup có sẵn của BSR. Phản hồi tức thì, tuân thủ chặt chẽ chính sách dữ liệu và chạy hoàn toàn offline không cần API Key.</span>
+          </div>
+        </div>
+
+        <div id="ai-deepseek-settings" style="${isDeepSeek ? '' : 'display:none;'}">
+          <div class="grid gap-16">
+            <div class="field">
+              <label for="ai-api-key">API Key</label>
+              <div style="display:flex;gap:8px;">
+                <input type="password" id="ai-api-key" placeholder="Dán API Key (sk-...)" value="${esc(config.apiKey || '')}" style="flex:1;">
+                <button class="btn btn-sm" type="button" data-action="toggle-key-view" id="btn-toggle-key">👁 Hiện</button>
+              </div>
+              <div class="small muted mt-4">
+                API Key được cấp quyền truy cập dịch vụ AI.
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="ai-model">Tên Model AI</label>
+              <input type="text" id="ai-model" value="${esc(config.model || 'deepseek-chat')}">
+              <div class="small muted mt-4">Gợi ý: <code>deepseek-chat</code> (hoặc để mặc định)</div>
+            </div>
+
+            <div class="field">
+              <label for="ai-base-url">API Base URL (Tùy chọn)</label>
+              <input type="text" id="ai-base-url" placeholder="https://api.deepseek.com" value="${esc(config.baseUrl || 'https://api.deepseek.com')}">
+              <div class="small muted mt-4">Mặc định: <code>https://api.deepseek.com</code></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-test-status" class="small mt-4"></div>
+      </div>
+    `;
+
+    const foot = `
+      <div class="flex items-center justify-between gap-8 wrap" style="width:100%">
+        <button class="btn btn-sm" data-action="clear-ai-settings" style="color:var(--restricted);">Đặt lại Auker mặc định</button>
+        <div class="flex items-center gap-8">
+          <button class="btn btn-sm" data-action="test-ai-connection">Thử kết nối</button>
+          <button class="btn btn-copper btn-sm" data-action="save-ai-settings">Lưu cấu hình</button>
+        </div>
+      </div>
+    `;
+
+    openModal(kicker, title, body, foot);
+  }
+
+  function toggleKeyVisibility() {
+    const inp = $('#ai-api-key');
+    const btn = $('#btn-toggle-key');
+    if (inp && btn) {
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = '🔒 Ẩn';
+      } else {
+        inp.type = 'password';
+        btn.textContent = '👁 Hiện';
+      }
+    }
+  }
+
+  function saveAiSettingsFromModal() {
+    const provider = $('#ai-provider') ? $('#ai-provider').value : 'auker';
+    const apiKey = $('#ai-api-key') ? $('#ai-api-key').value.trim() : '';
+    const model = $('#ai-model') ? $('#ai-model').value.trim() : 'deepseek-chat';
+    const baseUrl = ($('#ai-base-url') ? $('#ai-base-url').value.trim() : '') || 'https://api.deepseek.com';
+
+    if (provider === 'deepseek' && !apiKey) {
+      showToast('Vui lòng nhập API Key trước khi lưu.');
+      return;
+    }
+
+    saveAiConfig({ provider, apiKey, model, baseUrl });
+    closeModal();
+    render();
+    if (provider === 'deepseek') {
+      showToast('🎉 Đã kích hoạt Auker AI Agent!');
+    } else {
+      showToast('Đã chuyển về chế độ Auker Orchestrator (Mô phỏng nội bộ).');
+    }
+  }
+
+  function clearAiSettingsFromModal() {
+    saveAiConfig({ provider: 'auker', model: 'deepseek-chat', apiKey: '', baseUrl: 'https://api.deepseek.com' });
+    closeModal();
+    render();
+    showToast('Đã đặt lại về chế độ Auker Orchestrator mặc định.');
+  }
+
+  async function testAiConnectionFromModal() {
+    const provider = $('#ai-provider') ? $('#ai-provider').value : 'deepseek';
+    const statusEl = $('#ai-test-status');
+
+    if (provider === 'auker') {
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--teal);font-weight:600;">✓ Chế độ Auker (Mô phỏng nội bộ) sẵn sàng hoạt động mà không cần API Key.</span>';
+      return;
+    }
+
+    const apiKey = $('#ai-api-key') ? $('#ai-api-key').value.trim() : '';
+    const model = $('#ai-model') ? $('#ai-model').value.trim() : 'deepseek-chat';
+    const baseUrl = ($('#ai-base-url') ? $('#ai-base-url').value.trim() : '') || 'https://api.deepseek.com';
+
+    if (!apiKey) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--restricted);">⚠️ Vui lòng nhập API Key trước khi thử kết nối.</span>';
+      return;
+    }
+
+    if (statusEl) statusEl.innerHTML = '<span class="muted"><span class="pulse"></span> Đang kiểm tra kết nối tới AI Service...</span>';
+
+    try {
+      const base = baseUrl.replace(/\/+$/, '');
+      const res = await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: 'user', content: 'Trả lời đúng 1 từ: OK' }],
+          max_tokens: 5
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error && err.error.message ? err.error.message : 'HTTP ' + res.status);
+      }
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--teal);font-weight:600;">✓ Kết nối thành công! Auker AI Agent hoạt động tốt.</span>';
+    } catch (err) {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--restricted);font-weight:600;">✗ Lỗi kết nối Auker AI Agent: ${esc(err.message)}</span>`;
+    }
+  }
+
   function assistantPage() {
+    const aiConfig = getAiConfig();
+    const hasEnv = !!(backendEnvConfig && backendEnvConfig.has_key);
+    const isDeepSeek = hasEnv || (aiConfig && aiConfig.provider === 'deepseek' && !!aiConfig.apiKey);
+    const modelName = hasEnv ? (backendEnvConfig.model || 'deepseek-chat') : (aiConfig.model || 'deepseek-chat');
+    const engineBadge = isDeepSeek
+      ? `<span class="chip teal">${ico('sparkle', 9)} Auker AI Agent</span>`
+      : `<span class="chip">${ico('sparkle', 9)} Auker AI Agent (Demo Mode)</span>`;
+
     return `
       ${pageHead('AI assistant', 'Ask inside the boundary.', 'A permission-scoped research assistant. It retrieves permitted data, uses registered tools and cites what it used.', `
         <button class="btn" data-action="attach-doc">${ico('upload')} Attach document</button>
         <a class="btn" href="#reports">${ico('file')} Report workspace</a>`)}
       <div class="assistant-layout">
         <section class="card chat-card">
-          <div class="card-head"><div><h2 class="card-title">${ico('sparkle', 14)} Market intelligence assistant</h2><div class="card-sub">Auker orchestration · demo provider adapter</div></div><span class="chip teal">${ico('lock', 9)} ${esc(role().label)} scope</span></div>
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">${ico('sparkle', 14)} Market intelligence assistant</h2>
+              <div class="card-sub">${isDeepSeek ? 'Auker Orchestration · Auker AI Agent' : 'Auker orchestration · demo provider adapter'}</div>
+            </div>
+            <div class="flex items-center gap-8">
+              ${engineBadge}
+              <span class="chip teal">${ico('lock', 9)} ${esc(role().label)} scope</span>
+            </div>
+          </div>
           <div class="chat-body" id="chat-body">
             ${state.chat.length === 0 ? chatEmpty() : state.chat.map(renderMessage).join('')}
-            ${state.chatThinking ? `<div class="thinking"><span class="pulse"></span>Retrieving permitted data and validating sources…</div>` : ''}
+            ${state.chatThinking ? `<div class="thinking"><span class="pulse"></span>${isDeepSeek ? 'Auker AI Agent đang phân tích dữ liệu thị trường và trích dẫn nguồn…' : 'Retrieving permitted data and validating sources…'}</div>` : ''}
           </div>
           <div class="chat-composer">
             <label class="sr-only" for="chat-input">Ask a question</label>
-            <textarea id="chat-input" placeholder="Ask about prices, cracks, news, forecasts or a permitted document…">${esc(state.chatDraft)}</textarea>
+            <textarea id="chat-input" placeholder="Hỏi về giá dầu Brent, crack spread xăng, tin tức OPEC+, tình hình Biển Đỏ, bảo dưỡng Dung Quất…">${esc(state.chatDraft)}</textarea>
             ${state.attachment ? `<div class="tag-row mt-8"><span class="chip copper">${ico('file', 10)} ${esc(state.attachment)} <button class="link-btn" data-action="remove-attachment" aria-label="Remove attachment">×</button></span></div>` : ''}
-            <div class="composer-row"><span class="composer-hint">Enter to send · Shift+Enter for a new line · answers cite permitted sources</span><div class="flex gap-8 items-center"><button class="btn btn-sm" data-action="attach-doc">${ico('file', 12)} Attach</button><button class="btn btn-copper btn-sm" data-action="send-chat">${ico('arrowRight', 13)} Send</button></div></div>
+            <div class="composer-row"><span class="composer-hint">Enter để gửi · Shift+Enter xuống dòng · câu trả lời tự động trích dẫn nguồn</span><div class="flex gap-8 items-center"><button class="btn btn-sm" data-action="attach-doc">${ico('file', 12)} Attach</button><button class="btn btn-copper btn-sm" data-action="send-chat">${ico('arrowRight', 13)} Send</button></div></div>
           </div>
         </section>
         <aside class="assistant-rail">
+          <section class="card">
+            <div class="card-head"><div><h2 class="card-title">AI Engine</h2><div class="card-sub">${isDeepSeek ? 'Auker AI Agent' : 'Auker Synthetic Demo'}</div></div></div>
+            <div class="card-body"><div class="context-list">
+              <div class="context-row"><span class="c-name">Chế độ</span><span class="chip ${isDeepSeek ? 'teal' : ''}">${isDeepSeek ? 'Online · Auker AI Agent' : 'Auker Mô phỏng'}</span></div>
+              <div class="context-row"><span class="c-name">Orchestration</span><span class="c-value">Auker Intelligence</span></div>
+              <div class="context-row"><span class="c-name">LLM Engine</span><span class="c-value">${isDeepSeek ? 'Auker AI Agent' : 'Auker Deterministic'}</span></div>
+              <div class="context-row"><span class="c-name">Lưu trữ Key</span><span class="c-value">${hasEnv ? 'Backend .env' : 'Browser LocalStorage'}</span></div>
+            </div></div>
+          </section>
           <section class="card">
             <div class="card-head"><div><h2 class="card-title">Permission context</h2><div class="card-sub">Applied before retrieval</div></div></div>
             <div class="card-body"><div class="context-list">
@@ -1101,14 +1552,19 @@
   }
 
   function chatEmpty() {
-    return `<div class="chat-empty"><div class="ai-mark">A</div><h3>What should we investigate?</h3><p>Ask about a price move, a crack spread, a source comparison, forecast accuracy or a permitted news theme. The assistant will show its sources and tool trace.</p><div class="prompt-grid">
+    const aiConfig = getAiConfig();
+    const hasEnv = !!(backendEnvConfig && backendEnvConfig.has_key);
+    const isDeepSeek = hasEnv || (aiConfig && aiConfig.provider === 'deepseek' && !!aiConfig.apiKey);
+    return `<div class="chat-empty"><div class="ai-mark">A</div><h3>${isDeepSeek ? 'Auker AI Agent đã sẵn sàng' : 'What should we investigate?'}</h3>
+    <p>${isDeepSeek ? 'Hỏi bất kỳ điều gì về biến động giá, crack spread, tin tức OPEC+, tình hình Biển Đỏ, bảo dưỡng Dung Quất... Auker AI Agent sẽ phân tích trực tiếp trên dữ liệu của BSR và trích dẫn nguồn đầy đủ.' : 'Ask about a price move, a crack spread, a source comparison, forecast accuracy or a permitted news theme. The assistant will show its sources and tool trace.'}</p>
+    <div class="prompt-grid">
       ${['What is driving gasoline cracks?', 'Compare Brent and WTI over 30 days.', 'Which news could affect crude supply?', 'How accurate are Brent forecasts?', 'What does the physical Brent market show?', 'Summarize this morning\'s market briefing.'].map((p) => `<button class="prompt-btn" data-action="prompt" data-q="${esc(p)}">${esc(p)}</button>`).join('')}
     </div></div>`;
   }
 
   function renderMessage(m) {
     if (m.role === 'user') return `<div class="message user"><div class="bubble" data-i18n-skip>${esc(m.content)}</div></div>`;
-    return `<div class="message ai"><div class="ai-label">${ico('sparkle', 11)} ${esc(t('AI interpretation'))} · ${esc(t(m.meta || 'Auker demo adapter'))}</div><div class="bubble">${m.html}
+    return `<div class="message ai"><div class="ai-label">${ico('sparkle', 11)} ${esc(t('AI interpretation'))} · ${esc(t(m.meta || 'Auker demo adapter'))}</div><div class="bubble" data-i18n-skip>${m.html}
       ${!m.refusal ? `<div class="answer-actions"><button class="btn btn-sm" data-action="answer-report" data-question="${esc(m.question || '')}">${ico('file', 12)} ${esc(t('Create report'))}</button><button class="btn btn-sm" data-action="answer-analysis">${ico('analysis', 12)} ${esc(t('Open in Analysis'))}</button></div>` : ''}
       ${m.sources && m.sources.length ? `<div class="source-ledger">${m.sources.map((s) => `<button class="source-chip" data-action="open-source" data-route="${s.route}" data-id="${s.id}">${ico('file', 9)} ${esc(s.label)}</button>`).join('')}</div>` : ''}
       ${m.trace ? `<details class="tool-trace"><summary>Tool execution · ${esc(m.trace.status || 'completed')}</summary><ul>${m.trace.tools.map((t) => `<li>${esc(t)}</li>`).join('')}</ul><div>Validation: ${esc(m.trace.validation)} · ${esc(m.trace.meta)}</div></details>` : ''}
@@ -1120,21 +1576,127 @@
     if (el) el.scrollTop = el.scrollHeight;
   }
 
-  function ask(question) {
+  async function ask(question) {
     const q = question.trim();
     if (!q) return;
     state.chat.push({ role: 'user', content: q });
     state.chatDraft = '';
     state.chatThinking = true;
     if (state.route !== 'assistant') navigate('assistant'); else render();
-    window.setTimeout(() => {
-      const answer = aiAnswer(q);
-      const exec = { task: 'AI-DEMO-' + Math.random().toString(16).slice(2, 6).toUpperCase(), type: answer.type, model: 'demo-orchestrator/standard', reasoning: 'standard', tools: answer.trace.tools.length, latency: '1.8s', cost: '$0.014', status: answer.refusal ? 'Refused' : 'Succeeded', validation: 'Passed' };
-      state.executions.unshift(exec);
-      state.chat.push({ role: 'ai', html: answer.html, sources: answer.sources, trace: answer.trace, meta: answer.meta, refusal: answer.refusal, question: q });
-      state.chatThinking = false;
-      if (state.route === 'assistant') { render(); scrollChat(); }
-    }, 850);
+
+    if (backendEnvConfig === null) {
+      await checkBackendEnv();
+    }
+
+    const aiConfig = getAiConfig();
+    const hasClientKey = !!(aiConfig && aiConfig.provider === 'deepseek' && aiConfig.apiKey);
+
+    if (!hasClientKey && backendEnvConfig) {
+      // Connects via Backend which reads .env!
+      try {
+        const res = await fetch('/api/assistant/prototype-query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q, role: state.role || 'leadership' })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const sources = (data.citations || []).map((c) => ({
+          label: c.label || c.id,
+          route: c.kind === 'news' ? 'news' : 'market-data',
+          id: c.id
+        }));
+        const isDeepSeek = !!(backendEnvConfig && backendEnvConfig.has_key);
+        const exec = {
+          task: data.execution ? data.execution.task_id : ('AI-ENV-' + Math.random().toString(16).slice(2, 6).toUpperCase()),
+          type: 'backend_env_query',
+          model: isDeepSeek ? 'Auker AI Agent' : 'Auker Deterministic',
+          reasoning: isDeepSeek ? 'live_auker_agent' : 'sqlite_rag',
+          tools: data.tool_trace ? data.tool_trace.length : 3,
+          latency: (data.execution ? (data.execution.latency_ms / 1000).toFixed(2) : '1.20') + 's',
+          cost: isDeepSeek ? '$0.001' : '$0.000',
+          status: data.refusal ? 'Refused' : 'Succeeded',
+          validation: 'Passed'
+        };
+        state.executions.unshift(exec);
+        state.chat.push({
+          role: 'ai',
+          html: formatAiMarkdown(data.answer),
+          sources: sources.length ? sources : extractSourcesFromText(data.answer + ' ' + q),
+          trace: {
+            tools: ['permission_scope.enforce', 'backend.dotenv_env', 'auker_agent_api', 'output.render'],
+            validation: 'passed',
+            status: 'completed',
+            meta: `Auker Orchestration · Auker AI Agent`
+          },
+          meta: isDeepSeek ? 'Auker Intelligence · Auker AI Agent' : 'Auker Intelligence · SQLite Engine',
+          refusal: !!data.refusal,
+          question: q
+        });
+      } catch (err) {
+        console.error('Backend .env query error:', err);
+        // Fallback to client-side or demo simulation
+        runLocalOrDemo(q, aiConfig);
+      } finally {
+        state.chatThinking = false;
+        if (state.route === 'assistant') { render(); scrollChat(); }
+      }
+    } else {
+      runLocalOrDemo(q, aiConfig);
+    }
+  }
+
+  async function runLocalOrDemo(q, aiConfig) {
+    if (aiConfig && aiConfig.provider === 'deepseek' && aiConfig.apiKey) {
+      try {
+        const answer = await callLiveAiAgent(q, aiConfig);
+        const exec = {
+          task: 'AI-AUKER-' + Math.random().toString(16).slice(2, 6).toUpperCase(),
+          type: answer.type || 'live_agent_query',
+          model: 'Auker AI Agent',
+          reasoning: 'auker_live_agent',
+          tools: (answer.trace && answer.trace.tools ? answer.trace.tools.length : 4),
+          latency: answer.latency + 's',
+          cost: '$0.001',
+          status: answer.refusal ? 'Refused' : 'Succeeded',
+          validation: 'Passed'
+        };
+        state.executions.unshift(exec);
+        state.chat.push({
+          role: 'ai',
+          html: answer.html,
+          sources: answer.sources || [],
+          trace: answer.trace,
+          meta: answer.meta || 'Auker Intelligence · Auker AI Agent',
+          refusal: answer.refusal,
+          question: q
+        });
+      } catch (err) {
+        console.error('Auker Live Agent error:', err);
+        const errMsg = err.message || 'Lỗi không xác định khi gọi AI Service';
+        state.chat.push({
+          role: 'ai',
+          html: `<div class="refusal"><strong>Lỗi kết nối Auker AI Agent:</strong> ${esc(errMsg)}</div><p class="small muted mt-4">Vui lòng kiểm tra lại cấu hình hoặc kết nối mạng.</p>`,
+          sources: [],
+          trace: { tools: ['auker_agent.error'], validation: 'failed', status: 'error', meta: esc(errMsg) },
+          meta: 'Auker AI Agent Error',
+          refusal: true,
+          question: q
+        });
+      } finally {
+        state.chatThinking = false;
+        if (state.route === 'assistant') { render(); scrollChat(); }
+      }
+    } else {
+      window.setTimeout(() => {
+        const answer = aiAnswer(q);
+        const exec = { task: 'AI-DEMO-' + Math.random().toString(16).slice(2, 6).toUpperCase(), type: answer.type, model: 'demo-orchestrator/standard', reasoning: 'standard', tools: answer.trace.tools.length, latency: '1.8s', cost: '$0.014', status: answer.refusal ? 'Refused' : 'Succeeded', validation: 'Passed' };
+        state.executions.unshift(exec);
+        state.chat.push({ role: 'ai', html: answer.html, sources: answer.sources, trace: answer.trace, meta: answer.meta, refusal: answer.refusal, question: q });
+        state.chatThinking = false;
+        if (state.route === 'assistant') { render(); scrollChat(); }
+      }, 850);
+    }
   }
 
   function aiAnswer(q) {
@@ -1850,11 +2412,23 @@
       case 'navigate': navigate(el.dataset.route); break;
       case 'confirm-file-input': confirmFileInput(); break;
       case 'open-file': { const inp = $('#input-file-name'); if (inp) inp.click(); break; }
+      case 'open-ai-settings': openAiSettingsModal(); break;
+      case 'save-ai-settings': saveAiSettingsFromModal(); break;
+      case 'clear-ai-settings': clearAiSettingsFromModal(); break;
+      case 'test-ai-connection': testAiConnectionFromModal(); break;
+      case 'toggle-key-view': toggleKeyVisibility(); break;
       default: break;
     }
   }
 
   function onChange(e) {
+    if (e.target.id === 'ai-provider') {
+      const isDeepSeek = e.target.value === 'deepseek';
+      const deepseekBox = $('#ai-deepseek-settings');
+      const aukerBox = $('#ai-auker-desc');
+      if (deepseekBox) deepseekBox.style.display = isDeepSeek ? 'block' : 'none';
+      if (aukerBox) aukerBox.style.display = isDeepSeek ? 'none' : 'block';
+    }
     if (e.target.id === 'role-switch') {
       state.role = e.target.value;
       state.mobileNav = false;

@@ -12,7 +12,7 @@ def test_overview_shape_and_latest_values(seeded_client):
     body = response.get_json()
     assert body["tape"]
     card = next(card for card in body["cards"] if card["instrument"]["id"] == "brent_futures")
-    assert card["value"] == 78.42
+    assert card["value"] == 92.45
     assert card["instrument"]["unit"] == "USD/bbl"
     assert card["source"]["name"] == "ICE (demo)"
     assert card["market_time"]
@@ -66,7 +66,7 @@ def test_series_returns_points_compare_and_events(seeded_client):
     primary = body["series"][0]
     assert primary["unit"] == "USD/bbl"
     assert len(primary["points"]) == 7
-    assert primary["points"][-1]["v"] == 78.42
+    assert primary["points"][-1]["v"] == 92.45
     assert body["series"][1]["instrument"]["id"] == "wti_futures"
     assert body["events"]
 
@@ -110,7 +110,7 @@ def test_crack_calculation_is_stored_and_deterministic(seeded_client):
     )
     assert first.status_code == 201, first.get_json()
     body = first.get_json()
-    assert body["value"] == 13.68
+    assert body["value"] == -0.35
     assert body["unit"] == "USD/bbl"
     assert body["formula"]["id"] == "CS-GAS-2.1"
     assert body["inputs"]

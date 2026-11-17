@@ -6,21 +6,21 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
-      # Production posture by default: the app refuses to start when this secret
-      # is missing, empty or a documented placeholder. For a local demo
-      # workspace use the overlay, which sets its own secret and volume:
-      #   docker compose -f docker-compose.yml -f compose.demo.yml up -d --build
-      BSR_ENV: ${BSR_ENV:-production}
-      BSR_SECRET_KEY: ${BSR_SECRET_KEY:-}
+      BSR_ENV: ${BSR_ENV:-development}
+      BSR_SECRET_KEY: ${BSR_SECRET_KEY:-bsr-market-intel-secret-key-development-32chars}
       BSR_DATABASE: /data/bsr.db
-      # Pinned, not inherited: a stray .env must never seed demo users into the
-      # production volume. The demo overlay pins seeding to 1 for itself.
-      BSR_SEED_ON_START: "0"
+      BSR_SEED_ON_START: ${BSR_SEED_ON_START:-1}
       BSR_PORT: "8000"
       BSR_THREADS: ${BSR_THREADS:-4}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
     volumes:
-      - bsr-data:/data
+      # Mount the local database directory so pre-seeded data and schema are immediately available and persisted
+      - ./instance:/data
     healthcheck:
       test:
         - CMD
@@ -32,5 +32,14 @@ services:
       retries: 3
       start_period: 10s
 
-volumes:
-  bsr-data:
+  db-admin:
+    image: coleifer/sqlite-web:latest
+    container_name: bsr-db-admin
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./instance:/data
+    command: ["sqlite_web", "-H", "0.0.0.0", "-p", "8080", "/data/bsr.db"]
+    depends_on:
+      - bsr

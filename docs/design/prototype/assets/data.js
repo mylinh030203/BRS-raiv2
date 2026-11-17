@@ -1,20 +1,102 @@
 /* Synthetic demo data for the BSR Market Intelligence design prototype. */
 (function () {
   const DAY = 86400000;
-  const end = new Date('2026-11-14T09:42:00+07:00');
+  const end = new Date('2026-11-17T11:30:00+07:00');
 
-  function series(base, drift, vol, seed, n) {
+  function buildTrajectory(anchors, n, vol, seed, finalValue, isInteger) {
     const out = [];
-    let value = base;
     for (let i = n - 1; i >= 0; i--) {
-      const t = (n - i) / n;
-      const noise = Math.sin((i + seed) * 1.31) * vol + Math.cos((i + seed * 2.1) * 0.43) * vol * 0.55;
-      value = base * (1 - drift * t) + noise + Math.sin(i * 0.11 + seed) * base * 0.012;
-      out.push({ date: new Date(end.getTime() - i * DAY), value: Math.round(value * 100) / 100 });
+      const daysAgo = i;
+      let target = anchors[0][1];
+      for (let j = 0; j < anchors.length - 1; j++) {
+        const a1 = anchors[j];
+        const a2 = anchors[j + 1];
+        if (daysAgo <= a1[0] && daysAgo >= a2[0]) {
+          const ratio = (daysAgo - a2[0]) / (a1[0] - a2[0] || 1);
+          target = a2[1] + ratio * (a1[1] - a2[1]);
+          break;
+        }
+      }
+      if (daysAgo === 0) {
+        target = finalValue;
+      } else {
+        const noise = (Math.sin((i + seed) * 1.31) * 0.6 + Math.cos((i + seed * 2.1) * 0.43) * 0.4) * vol;
+        target = target + noise;
+      }
+      const val = isInteger ? Math.round(target) : Math.round(target * 100) / 100;
+      out.push({
+        date: new Date(end.getTime() - daysAgo * DAY),
+        value: val
+      });
     }
-    out[out.length - 1].value = base;
+    out[out.length - 1].value = finalValue;
     return out;
   }
+
+  const brentSeries = buildTrajectory([
+    [365, 82.50], [180, 84.00], [90, 85.50], [60, 88.00], [30, 106.07],
+    [18, 117.64], [15, 104.77], [11, 98.32], [6, 92.76], [2, 91.80], [1, 91.33], [0, 92.45]
+  ], 365, 0.45, 3, 92.45);
+
+  const wtiSeries = buildTrajectory([
+    [365, 76.20], [180, 77.50], [90, 78.50], [60, 81.20], [30, 98.40],
+    [18, 109.80], [15, 97.50], [11, 91.20], [6, 85.10], [2, 84.10], [1, 83.75], [0, 84.60]
+  ], 365, 0.40, 7, 84.60);
+
+  const brentPhysSeries = buildTrajectory([
+    [365, 80.00], [180, 81.50], [90, 82.50], [30, 95.00], [18, 104.50],
+    [15, 92.00], [11, 85.00], [6, 78.50], [1, 77.10], [0, 77.90]
+  ], 365, 0.35, 11, 77.90);
+
+  const ron95Series = buildTrajectory([
+    [365, 94.00], [180, 96.00], [90, 98.50], [30, 118.00], [18, 132.50],
+    [15, 120.00], [11, 112.50], [6, 96.80], [1, 92.55], [0, 92.10]
+  ], 365, 0.50, 15, 92.10);
+
+  const dieselSeries = buildTrajectory([
+    [365, 98.00], [180, 100.00], [90, 102.00], [30, 122.00], [18, 136.50],
+    [15, 124.00], [11, 116.00], [6, 101.50], [1, 96.10], [0, 96.40]
+  ], 365, 0.45, 19, 96.40);
+
+  const jetSeries = buildTrajectory([
+    [365, 99.00], [180, 101.50], [90, 104.00], [30, 124.00], [18, 138.00],
+    [15, 126.00], [11, 118.00], [6, 104.00], [1, 98.65], [0, 99.20]
+  ], 365, 0.45, 23, 99.20);
+
+  const foSeries = buildTrajectory([
+    [365, 65.00], [180, 67.00], [90, 69.00], [30, 76.00], [18, 82.50],
+    [15, 77.00], [11, 73.00], [6, 70.00], [1, 68.50], [0, 68.30]
+  ], 365, 0.30, 27, 68.30);
+
+  const usdvndSeries = buildTrajectory([
+    [365, 24850], [180, 25400], [90, 26050], [30, 25850], [15, 25580],
+    [6, 25620], [1, 25639], [0, 25652]
+  ], 365, 15, 31, 25652, true);
+
+  const dxySeries = buildTrajectory([
+    [365, 104.20], [180, 101.50], [90, 99.80], [30, 101.80], [15, 102.80],
+    [6, 103.30], [1, 103.49], [0, 103.65]
+  ], 365, 0.12, 35, 103.65);
+
+  const crackGasSeries = buildTrajectory([
+    [365, 14.50], [180, 15.20], [90, 16.20], [30, 17.50], [18, 19.80],
+    [15, 18.90], [11, 18.20], [6, 17.80], [1, 17.73], [0, 18.35]
+  ], 365, 0.25, 39, 18.35);
+
+  const crackDslSeries = buildTrajectory([
+    [365, 18.50], [180, 19.20], [90, 20.00], [30, 22.50], [18, 24.80],
+    [15, 23.50], [11, 22.20], [6, 21.50], [1, 21.34], [0, 21.10]
+  ], 365, 0.25, 43, 21.10);
+
+  const crack321Series = buildTrajectory([
+    [365, 16.00], [180, 16.80], [90, 17.80], [30, 19.20], [18, 21.50],
+    [15, 20.40], [11, 19.50], [6, 19.00], [1, 18.99], [0, 19.40]
+  ], 365, 0.25, 47, 19.40);
+
+  const bsrMarginSeries = buildTrajectory([
+    [365, 7.10], [180, 7.30], [90, 7.50], [30, 8.50], [18, 9.80],
+    [15, 9.10], [11, 8.50], [6, 8.00], [1, 8.06], [0, 8.24]
+  ], 365, 0.15, 51, 8.24);
 
   const instruments = [
     {
@@ -22,7 +104,7 @@
       value: 92.45, unit: 'USD/bbl', priceType: 'Futures', source: 'ICE (demo)', sourceId: 'SRC-ICE',
       marketTime: '17 Nov 2026 · 11:30 ICT', ingestionTime: '17 Nov 2026 · 11:32 ICT',
       dataStatus: 'Real-time', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 1.12, pct: 1.23, spark: series(92.45, 0.02, 1.6, 3, 40), series: series(92.45, 0.02, 1.8, 3, 365),
+      change: 1.12, pct: 1.23, spark: brentSeries.slice(-40), series: brentSeries,
       description: 'Front-month Brent futures, ICE. Live benchmark feed.'
     },
     {
@@ -30,7 +112,7 @@
       value: 84.60, unit: 'USD/bbl', priceType: 'Futures', source: 'CME (demo)', sourceId: 'SRC-CME',
       marketTime: '17 Nov 2026 · 11:28 ICT', ingestionTime: '17 Nov 2026 · 11:30 ICT',
       dataStatus: 'Real-time', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 0.85, pct: 1.02, spark: series(84.60, 0.015, 1.3, 7, 40), series: series(84.60, 0.015, 1.4, 7, 365),
+      change: 0.85, pct: 1.02, spark: wtiSeries.slice(-40), series: wtiSeries,
       description: 'Front-month WTI futures, CME. Live benchmark feed.'
     },
     {
@@ -38,7 +120,7 @@
       value: 77.9, unit: 'USD/bbl', priceType: 'Physical', source: 'Platts (demo)', sourceId: 'SRC-PLATTS',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:05 ICT',
       dataStatus: 'End-of-day', quality: 'Valid', classification: 'Restricted', decimals: 2,
-      change: 0.8, pct: 1.04, spark: series(77.9, 0.018, 1.5, 11, 40), series: series(77.9, 0.018, 1.6, 11, 365),
+      change: 0.8, pct: 1.04, spark: brentPhysSeries.slice(-40), series: brentPhysSeries,
       description: 'Dated Brent physical assessment. Restricted commercial data.'
     },
     {
@@ -46,7 +128,7 @@
       value: 92.1, unit: 'USD/bbl', priceType: 'Physical', source: 'Platts (demo)', sourceId: 'SRC-PLATTS',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:05 ICT',
       dataStatus: 'End-of-day', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: -0.45, pct: -0.49, spark: series(92.1, -0.01, 1.9, 15, 40), series: series(92.1, -0.01, 2.0, 15, 365),
+      change: -0.45, pct: -0.49, spark: ron95Series.slice(-40), series: ron95Series,
       description: 'Gasoline RON95 FOB Singapore assessment used for crack reference.'
     },
     {
@@ -54,7 +136,7 @@
       value: 96.4, unit: 'USD/bbl', priceType: 'Physical', source: 'Platts (demo)', sourceId: 'SRC-PLATTS',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:05 ICT',
       dataStatus: 'End-of-day', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 0.3, pct: 0.31, spark: series(96.4, 0.01, 1.7, 19, 40), series: series(96.4, 0.01, 1.8, 19, 365),
+      change: 0.3, pct: 0.31, spark: dieselSeries.slice(-40), series: dieselSeries,
       description: 'Diesel 10ppm FOB Singapore assessment.'
     },
     {
@@ -62,7 +144,7 @@
       value: 99.2, unit: 'USD/bbl', priceType: 'Physical', source: 'Platts (demo)', sourceId: 'SRC-PLATTS',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:05 ICT',
       dataStatus: 'End-of-day', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 0.55, pct: 0.56, spark: series(99.2, 0.012, 1.9, 23, 40), series: series(99.2, 0.012, 2.0, 23, 365),
+      change: 0.55, pct: 0.56, spark: jetSeries.slice(-40), series: jetSeries,
       description: 'Jet Fuel A-1 FOB Singapore assessment.'
     },
     {
@@ -70,7 +152,7 @@
       value: 68.3, unit: 'USD/bbl', priceType: 'Physical', source: 'Platts (demo)', sourceId: 'SRC-PLATTS',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:05 ICT',
       dataStatus: 'End-of-day', quality: 'Pending', classification: 'Internal', decimals: 2,
-      change: -0.2, pct: -0.29, spark: series(68.3, -0.005, 1.1, 27, 40), series: series(68.3, -0.005, 1.2, 27, 365),
+      change: -0.2, pct: -0.29, spark: foSeries.slice(-40), series: foSeries,
       description: 'Fuel oil 180 CST FOB Singapore. Quality check pending.'
     },
     {
@@ -78,7 +160,7 @@
       value: 25652, unit: 'VND', priceType: 'Index', source: 'SBV (demo)', sourceId: 'SRC-SBV',
       marketTime: '17 Nov 2026 · 11:00 ICT', ingestionTime: '17 Nov 2026 · 11:02 ICT',
       dataStatus: 'Delayed', quality: 'Valid', classification: 'Internal', decimals: 0,
-      change: 13, pct: 0.05, spark: series(25652, 0.004, 90, 31, 40).map(p => ({ ...p, value: Math.round(p.value) })), series: series(25652, 0.004, 90, 31, 365).map(p => ({ ...p, value: Math.round(p.value) })),
+      change: 13, pct: 0.05, spark: usdvndSeries.slice(-40), series: usdvndSeries,
       description: 'State Bank of Vietnam reference central rate. Live public feed.'
     },
     {
@@ -86,7 +168,7 @@
       value: 103.65, unit: 'index', priceType: 'Index', source: 'ICE (demo)', sourceId: 'SRC-ICE',
       marketTime: '17 Nov 2026 · 11:20 ICT', ingestionTime: '17 Nov 2026 · 11:22 ICT',
       dataStatus: 'Delayed', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 0.16, pct: 0.15, spark: series(103.65, -0.002, 0.5, 35, 40), series: series(103.65, -0.002, 0.55, 35, 365),
+      change: 0.16, pct: 0.15, spark: dxySeries.slice(-40), series: dxySeries,
       description: 'US Dollar Index, delayed market feed.'
     },
     {
@@ -94,7 +176,7 @@
       value: 18.35, unit: 'USD/bbl', priceType: 'Calculated', source: 'BSR Analytical', sourceId: 'SRC-BSR-AN',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:06 ICT',
       dataStatus: 'End-of-day', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 0.62, pct: 3.5, spark: series(18.35, 0.03, 0.9, 39, 40), series: series(18.35, 0.03, 1.0, 39, 365),
+      change: 0.62, pct: 3.5, spark: crackGasSeries.slice(-40), series: crackGasSeries,
       description: 'Gasoline crack versus Brent futures. Formula CS-GAS-2.1, no price-type mixing.',
       formula: { id: 'CS-GAS-2.1', inputs: ['RON95 (FOB Singapore)', 'Brent Crude Futures'], rule: 'RON95 physical − Brent futures. Converted to USD/bbl.' }
     },
@@ -103,7 +185,7 @@
       value: 21.1, unit: 'USD/bbl', priceType: 'Calculated', source: 'BSR Analytical', sourceId: 'SRC-BSR-AN',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:06 ICT',
       dataStatus: 'End-of-day', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: -0.24, pct: -1.12, spark: series(21.1, 0.015, 0.8, 43, 40), series: series(21.1, 0.015, 0.9, 43, 365),
+      change: -0.24, pct: -1.12, spark: crackDslSeries.slice(-40), series: crackDslSeries,
       description: 'Diesel crack versus Brent futures. Formula CS-DSL-2.0.',
       formula: { id: 'CS-DSL-2.0', inputs: ['Diesel 10ppm (FOB Singapore)', 'Brent Crude Futures'], rule: 'Diesel physical − Brent futures. Converted to USD/bbl.' }
     },
@@ -112,7 +194,7 @@
       value: 19.4, unit: 'USD/bbl', priceType: 'Calculated', source: 'BSR Analytical', sourceId: 'SRC-BSR-AN',
       marketTime: '13 Nov 2026 · 18:30 ICT', ingestionTime: '14 Nov 2026 · 07:06 ICT',
       dataStatus: 'End-of-day', quality: 'Valid', classification: 'Internal', decimals: 2,
-      change: 0.41, pct: 2.16, spark: series(19.4, 0.02, 0.8, 47, 40), series: series(19.4, 0.02, 0.9, 47, 365),
+      change: 0.41, pct: 2.16, spark: crack321Series.slice(-40), series: crack321Series,
       description: 'Illustrative 3-2-1 composite using two gasoline barrels and one diesel barrel against three crude barrels.',
       formula: { id: 'CS-321-1.3', inputs: ['RON95', 'Diesel', 'Brent futures'], rule: '(2 × gasoline + 1 × diesel − 3 × Brent) / 3. Demo formula.' }
     },
@@ -121,7 +203,7 @@
       value: 8.24, unit: 'USD/bbl', priceType: 'Calculated', source: 'BSR Internal', sourceId: 'SRC-BSR-IN',
       marketTime: '13 Nov 2026 · 17:00 ICT', ingestionTime: '13 Nov 2026 · 17:04 ICT',
       dataStatus: 'Manual', quality: 'Valid', classification: 'Confidential', decimals: 2,
-      change: 0.34, pct: 4.3, spark: series(8.24, 0.02, 0.5, 51, 40), series: series(8.24, 0.02, 0.55, 51, 365),
+      change: 0.34, pct: 4.3, spark: bsrMarginSeries.slice(-40), series: bsrMarginSeries,
       description: 'Indicative internal refining margin. Confidential; illustrative only.'
     }
   ];

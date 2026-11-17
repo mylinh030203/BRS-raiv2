@@ -418,10 +418,10 @@
     'Open linked data': 'Mở dữ liệu liên kết',
 
     /* Forecast */
-    'Forecast intelligence': 'Phân tích dự báo',
-    'Keep every version. Test it later.': 'Lưu lại từng phiên bản, để sau còn đối chiếu.',
+    'Forecast intelligence': 'Thông tin & Phân tích dự báo',
+    'Keep every version. Test it later.': 'Quản lý phiên bản dự báo & Đánh giá kiểm chứng.',
     'Forecasts are stored immutably by source, instrument and horizon. Error metrics are computed deterministically from stored values.':
-      'Mỗi dự báo được lưu cố định theo nguồn, hàng hoá và kỳ hạn, không sửa lại được. Chỉ số sai số do hệ thống tính tự động từ dữ liệu đã lưu.',
+      'Dự báo được lưu trữ bất biến theo nguồn, công cụ và kỳ hạn. Các chỉ số sai số được tính toán tất định từ dữ liệu gốc đã lưu.',
     'Add forecast': 'Thêm dự báo',
     'All instruments': 'Tất cả công cụ',
     'Period / horizon': 'Kỳ / kỳ hạn',
@@ -430,7 +430,7 @@
     'Versions →': 'Phiên bản →',
     'No forecasts match the selected filters.': 'Không có dự báo nào khớp bộ lọc đã chọn.',
     'Versioned records are never overwritten. Missing actuals are not treated as zero.':
-      'Bản đã lưu không bao giờ bị ghi đè. Chỗ thiếu số thực tế thì để trống, không tính là 0.',
+      'Bản lưu phiên bản không bao giờ bị ghi đè. Các mốc thiếu giá trị thực tế được loại trừ thay vì tính là 0.',
     'Forecast vs actual': 'Dự báo so với thực tế',
     'Permitted forecasts with a recorded actual': 'Dự báo được phép có giá trị thực tế đã ghi',
     'No evaluated forecasts in the current selection. Actual values must be recorded before error metrics can be computed.':
@@ -550,7 +550,7 @@
     'Tool execution · completed': 'Thực thi công cụ · hoàn tất',
 
     /* Reports */
-    'A snapshot that stays put.': 'Bản chụp cố định, không lặng lẽ đổi thay.',
+    'A snapshot that stays put.': 'Báo cáo thị trường & Lưu trữ phiên bản cố định.',
     'Build a report, cite its sources and keep each version. Export is a separate permission from viewing.':
       'Tạo báo cáo, trích dẫn nguồn và giữ từng phiên bản. Xuất là quyền riêng, tách khỏi quyền xem.',
     'New report': 'Báo cáo mới',

@@ -68,6 +68,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "script-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none'",
         )
+        if request.path.startswith("/assets/") or request.path.endswith(".html") or request.path == "/":
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
         return response
 
     @app.errorhandler(ApiError)
